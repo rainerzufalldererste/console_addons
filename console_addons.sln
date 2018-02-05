@@ -5,6 +5,10 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "findf", "findf\findf.csproj", "{EEABE630-AF3B-4520-9C51-A184E737EBD5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "findif", "findif\findif.csproj", "{294A5FA0-FE36-48C4-815A-4CC88AB5D63C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cdf", "cdf\cdf.csproj", "{2DCEA7ED-03D8-4A04-B698-A1DA32668987}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{EEABE630-AF3B-4520-9C51-A184E737EBD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EEABE630-AF3B-4520-9C51-A184E737EBD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EEABE630-AF3B-4520-9C51-A184E737EBD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{294A5FA0-FE36-48C4-815A-4CC88AB5D63C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{294A5FA0-FE36-48C4-815A-4CC88AB5D63C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{294A5FA0-FE36-48C4-815A-4CC88AB5D63C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{294A5FA0-FE36-48C4-815A-4CC88AB5D63C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
