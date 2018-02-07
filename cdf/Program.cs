@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,21 +42,39 @@ namespace cdf
           dir = dir.Substring(Environment.CurrentDirectory.Length + 1);
 
         Console.WriteLine(dir);
-
-        //System.Threading.Thread.CurrentThread.SetApartmentState(System.Threading.ApartmentState.STA);
+        
         System.Windows.Forms.Clipboard.SetText(dir);
         Console.WriteLine("\nCopied directory name to Clipboard.");
       }
       else
       {
-        foreach (string d in dirs)
+        bool first = true;
+        
+        foreach (string d in dirs.OrderBy((s) => (from c in s where c == '\\' || c == '/' select 0).Count()))
         {
           string dir = d;
-
+          
           if (dir.StartsWith(Environment.CurrentDirectory))
             dir = dir.Substring(Environment.CurrentDirectory.Length + 1);
-
-          Console.WriteLine(dir);
+          
+          if (first)
+          {
+            try
+            {
+              System.Windows.Forms.Clipboard.SetText(dir);
+            }
+            catch { }
+            
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"{dir} (Copied)");
+            Console.ResetColor();
+            
+            first = false;
+          }
+          else
+          {
+            Console.WriteLine(dir);
+          }
         }
       }
     }
