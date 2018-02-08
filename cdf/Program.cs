@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -13,17 +14,19 @@ namespace cdf
     [STAThread]
     static void Main(string[] args)
     {
-      IEnumerable<string> dirs = null;
+      List<string> dirs = null;
+
+      string searchPattern = null;
+      int subDirs = 1;
 
       if (args.Length == 1)
       {
-        args[0] = args[0].Replace("/", "?").Replace("\\", "?");
-        dirs = Directory.EnumerateDirectories(Environment.CurrentDirectory, args[0], SearchOption.AllDirectories).Catch(typeof(UnauthorizedAccessException)).ToArray();
+        searchPattern = args[0];
       }
       else if (args.Length == 2 && args[0] == "-t")
       {
-        args[1] = args[1].Replace("/", "?").Replace("\\", "?");
-        dirs = Directory.EnumerateDirectories(Environment.CurrentDirectory, args[1], SearchOption.TopDirectoryOnly).Catch(typeof(UnauthorizedAccessException)).ToArray();
+        searchPattern = args[1];
+        subDirs = 0;
       }
       else
       {
@@ -32,18 +35,42 @@ namespace cdf
         return;
       }
 
-      if (dirs.Count() == 0)
+      int last = 0;
+
+      RETRY:
+      dirs = GetDirectories(Environment.CurrentDirectory, subDirs).ToList();
+
+      int found = dirs.Count;
+
+      for (int i = 0; i < dirs.Count; i++)
+        if (dirs[i].StartsWith(Environment.CurrentDirectory) && dirs[i].Length > Environment.CurrentDirectory.Length)
+          dirs[i] = dirs[i].Substring(Environment.CurrentDirectory.Length + 1);
+
+      Regex regex = new Regex(searchPattern.Replace("/", "\\").Replace("\\", "\\\\").Replace("*", "(.*)").Replace("?", "(.)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+      dirs = (from s in dirs where regex.IsMatch(s) select s).ToList();
+
+      if(dirs.Count == 0)
+      {
+        if (subDirs > 0 && found > last)
+        {
+          subDirs++;
+          last = found;
+          goto RETRY;
+        }
+      }
+
+      if (dirs.Count == 0)
       {
         Console.WriteLine("No matches found.");
       }
-      else if (dirs.Count() == 1)
+      else if (dirs.Count == 1)
       {
         string dir = dirs.First();
 
-        if (dir.StartsWith(Environment.CurrentDirectory))
-          dir = dir.Substring(Environment.CurrentDirectory.Length + 1);
-
+        Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine(dir);
+        Console.ResetColor();
 
         System.Windows.Forms.Clipboard.SetText(dir);
         Console.WriteLine("\nCopied directory name to Clipboard.");
@@ -55,9 +82,6 @@ namespace cdf
         foreach (string d in dirs.OrderBy((s) => (from c in s where c == '\\' || c == '/' select 0).Count()))
         {
           string dir = d;
-
-          if (dir.StartsWith(Environment.CurrentDirectory))
-            dir = dir.Substring(Environment.CurrentDirectory.Length + 1);
 
           if (first)
           {
@@ -80,36 +104,27 @@ namespace cdf
         }
       }
     }
-  }
 
-  // See: http://qaru.site/questions/127277/c-handle-systemunauthorizedaccessexception-in-linq
-  static class ExceptionExtensions
-  {
-    public static IEnumerable<TIn> Catch<TIn>(this IEnumerable<TIn> source, Type exceptionType)
+    static IEnumerable<string> GetDirectories(string directory, int depth = -1)
     {
-      using (var enumerator = source.GetEnumerator())
+      try
       {
-        while (true)
-        {
-          bool ok = false;
+        var dirs = Directory.EnumerateDirectories(directory);
 
-          try
-          {
-            ok = enumerator.MoveNext();
-          }
-          catch (Exception e)
-          {
-            if (e.GetType() != exceptionType)
-              throw;
-            continue;
-          }
+        List<string> subDirs = new List<string>();
 
-          if (!ok)
-            yield break;
+        if(depth > 0 || depth <= -1)
+          foreach (string dir in dirs)
+            subDirs.AddRange(GetDirectories(dir, depth - 1));
 
-          yield return enumerator.Current;
-        }
+        var ret = dirs.ToList();
+        ret.AddRange(subDirs);
+
+        return ret;
       }
+      catch { }
+
+      return new string[0];
     }
   }
 }
