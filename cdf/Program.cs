@@ -19,20 +19,15 @@ namespace cdf
       List<string> dirs = null;
 
       string searchPattern = null;
-      int subDirs = 1;
+      int subDirs = 0;
 
       if (args.Length == 1)
       {
         searchPattern = args[0];
       }
-      else if (args.Length == 2 && args[0] == "-t")
-      {
-        searchPattern = args[1];
-        subDirs = 0;
-      }
       else
       {
-        Console.WriteLine("Invalid Parameter.\n\ncdf [-t(op directories only)] <directory-search-pattern>");
+        Console.WriteLine("Invalid Parameter.\n\ncdf <directory-search-pattern>");
 
         return;
       }
@@ -48,13 +43,23 @@ namespace cdf
         if (dirs[i].StartsWith(Environment.CurrentDirectory) && dirs[i].Length > Environment.CurrentDirectory.Length)
           dirs[i] = dirs[i].Substring(Environment.CurrentDirectory.Length + 1);
 
-      Regex regex = new Regex(searchPattern.Replace("/", "\\").Replace("\\", "\\\\").Replace("*", "(.*)").Replace("?", "(.)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+      Regex regex = null;
+
+      try
+      {
+        regex = new Regex(searchPattern.Replace("/", "\\").Replace("\\", "\\\\").Replace("*", "(.*)").Replace("?", "(.)"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+      }
+      catch
+      {
+        Console.WriteLine("Invalid Search Pattern.\n\n* : \t multiple arbitrary characters\n? : \t single arbitrary character\n\nExample: \"data/build*Rele?se\" could match with \"project\\data\\build\\201\\Release\"");
+        return;
+      }
 
       dirs = (from s in dirs where regex.IsMatch(s) select s).ToList();
 
       if (dirs.Count == 0)
       {
-        if (subDirs > 0 && found > last)
+        if (found > last)
         {
           subDirs++;
           last = found;
@@ -107,7 +112,7 @@ namespace cdf
       }
     }
 
-    static IEnumerable<string> GetDirectories(string directory, int depth = -1)
+    static IEnumerable<string> GetDirectories(string directory, int depth)
     {
       IEnumerable<string> dirs;
 
@@ -131,7 +136,7 @@ namespace cdf
 
       List<string> subDirs = new List<string>();
 
-      if (depth > 0 || depth <= -1)
+      if (depth > 0)
         foreach (string dir in dirs)
           subDirs.AddRange(GetDirectories(dir, depth - 1));
 
