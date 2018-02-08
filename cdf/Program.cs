@@ -11,6 +11,8 @@ namespace cdf
 {
   class Program
   {
+    static Dictionary<string, IEnumerable<string>> folderCache = new Dictionary<string, IEnumerable<string>>();
+
     [STAThread]
     static void Main(string[] args)
     {
@@ -50,7 +52,7 @@ namespace cdf
 
       dirs = (from s in dirs where regex.IsMatch(s) select s).ToList();
 
-      if(dirs.Count == 0)
+      if (dirs.Count == 0)
       {
         if (subDirs > 0 && found > last)
         {
@@ -107,24 +109,36 @@ namespace cdf
 
     static IEnumerable<string> GetDirectories(string directory, int depth = -1)
     {
-      try
+      IEnumerable<string> dirs;
+
+      if (folderCache.ContainsKey(directory))
       {
-        var dirs = Directory.EnumerateDirectories(directory);
-
-        List<string> subDirs = new List<string>();
-
-        if(depth > 0 || depth <= -1)
-          foreach (string dir in dirs)
-            subDirs.AddRange(GetDirectories(dir, depth - 1));
-
-        var ret = dirs.ToList();
-        ret.AddRange(subDirs);
-
-        return ret;
+        dirs = folderCache[directory];
       }
-      catch { }
+      else
+      {
+        try
+        {
+          dirs = Directory.EnumerateDirectories(directory);
+          folderCache.Add(directory, dirs);
+        }
+        catch
+        {
+          folderCache.Add(directory, new string[0]);
+          return new string[0];
+        }
+      }
 
-      return new string[0];
+      List<string> subDirs = new List<string>();
+
+      if (depth > 0 || depth <= -1)
+        foreach (string dir in dirs)
+          subDirs.AddRange(GetDirectories(dir, depth - 1));
+
+      var ret = dirs.ToList();
+      ret.AddRange(subDirs);
+
+      return ret;
     }
   }
 }
