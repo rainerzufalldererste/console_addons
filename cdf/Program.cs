@@ -41,7 +41,7 @@ namespace cdf
 
       for (int i = 0; i < dirs.Count; i++)
         if (dirs[i].StartsWith(Environment.CurrentDirectory) && dirs[i].Length > Environment.CurrentDirectory.Length)
-          dirs[i] = dirs[i].Substring(Environment.CurrentDirectory.Length + 1);
+          dirs[i] = dirs[i].Substring(Environment.CurrentDirectory.Length + (Environment.CurrentDirectory.EndsWith("\\") ? 0 : 1));
 
       Regex regex = null;
 
