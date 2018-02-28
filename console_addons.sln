@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2026
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "findf", "findf\findf.csproj", "{EEABE630-AF3B-4520-9C51-A184E737EBD5}"
 EndProject
@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "linemod", "linemod\linemod.csproj", "{25D09EFF-0349-4081-BE17-27FBE53BD2A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +34,10 @@ Global
 		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DCEA7ED-03D8-4A04-B698-A1DA32668987}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25D09EFF-0349-4081-BE17-27FBE53BD2A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25D09EFF-0349-4081-BE17-27FBE53BD2A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25D09EFF-0349-4081-BE17-27FBE53BD2A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25D09EFF-0349-4081-BE17-27FBE53BD2A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
