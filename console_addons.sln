@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "linemod", "linemod\linemod.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "far", "far\far.csproj", "{7078EF8C-4FBD-4FC5-B8D3-949BC0C65A77}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "edit", "edit\edit.csproj", "{AC350D58-E7C1-4D12-AEE8-0F46307953FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{7078EF8C-4FBD-4FC5-B8D3-949BC0C65A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7078EF8C-4FBD-4FC5-B8D3-949BC0C65A77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7078EF8C-4FBD-4FC5-B8D3-949BC0C65A77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC350D58-E7C1-4D12-AEE8-0F46307953FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC350D58-E7C1-4D12-AEE8-0F46307953FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC350D58-E7C1-4D12-AEE8-0F46307953FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC350D58-E7C1-4D12-AEE8-0F46307953FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
