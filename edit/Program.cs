@@ -746,8 +746,8 @@ namespace edit
         if (File[SelectionStartLine].Length > SelectionStartChar)
           File[SelectionStartLine] = File[SelectionStartLine].Remove(Math.Min(SelectionStartChar, File[SelectionStartLine].Length - 1));
 
-        if (File[SelectionEndLine].Length > SelectionEndChar)
-          File[SelectionEndLine] = File[SelectionEndLine].Substring(Math.Max(SelectionEndChar, 1));
+        if (File[SelectionEndLine].Length > SelectionEndChar - 1)
+          File[SelectionEndLine] = File[SelectionEndLine].Substring(SelectionEndChar);
 
         File.RemoveRange(SelectionStartLine + 1, SelectionEndLine - SelectionStartLine - 1);
       }
@@ -1033,7 +1033,7 @@ namespace edit
 
     private static bool IsInSelection(int textLine, int characterIndex)
     {
-      return (textLine > SelectionStartLine && textLine < SelectionEndLine) || (textLine == SelectionStartLine && SelectionStartLine != SelectionEndLine && characterIndex >= SelectionStartChar) || (textLine == SelectionEndLine && SelectionStartLine != SelectionEndLine && characterIndex <= SelectionEndChar) || (SelectionStartLine == SelectionEndLine && textLine == SelectionStartLine && characterIndex <= SelectionEndChar && characterIndex >= SelectionStartChar);
+      return (textLine > SelectionStartLine && textLine < SelectionEndLine) || (textLine == SelectionStartLine && SelectionStartLine != SelectionEndLine && characterIndex >= SelectionStartChar) || (textLine == SelectionEndLine && SelectionStartLine != SelectionEndLine && characterIndex < SelectionEndChar) || (SelectionStartLine == SelectionEndLine && textLine == SelectionStartLine && characterIndex < SelectionEndChar && characterIndex >= SelectionStartChar);
     }
   }
 }
