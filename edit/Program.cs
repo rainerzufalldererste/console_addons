@@ -29,7 +29,9 @@ namespace edit
     static string ErrorMessageString = "";
     static int SelectionStartLine = -1, SelectionEndLine = -1, SelectionStartChar = -1, SelectionEndChar = -1;
     static bool Selecting = false;
+    static List<string> CopyBuffer = new List<string>();
 
+    [STAThread]
     static void Main(string[] args)
     {
       if (args.Length > 0)
@@ -146,7 +148,7 @@ namespace edit
 
         SetCursorPosition(ActivePositionX, ActivePositionY);
       }
-      while (IsRunning && !((Key = Console.ReadKey()).Key == ConsoleKey.C && Key.Modifiers == ConsoleModifiers.Control));
+      while (IsRunning && !((Key = Console.ReadKey()).Key == ConsoleKey.Q && Key.Modifiers == ConsoleModifiers.Control));
 
       if (!CustomHeight)
         Clear();
@@ -266,6 +268,12 @@ namespace edit
 
         case ConsoleKey.Enter:
           {
+            if (Selecting)
+            {
+              RemoveSelection();
+              Selecting = false;
+            }
+
             if (Key.Modifiers == ConsoleModifiers.Control)
             {
               File.Insert(Line, "");
@@ -292,6 +300,14 @@ namespace edit
 
         case ConsoleKey.Backspace:
           {
+            if (Selecting)
+            {
+              forceRedraw = true;
+              RemoveSelection();
+              Selecting = false;
+              break;
+            }
+
             forceRedraw = true;
 
             if ((Key.Modifiers & ConsoleModifiers.Control) == 0)
@@ -360,6 +376,14 @@ namespace edit
 
         case ConsoleKey.Delete:
           {
+            if (Selecting)
+            {
+              forceRedraw = true;
+              RemoveSelection();
+              Selecting = false;
+              break;
+            }
+
             if ((Key.Modifiers & ConsoleModifiers.Control) == 0)
             {
               if (Char == File[Line].Length)
@@ -426,7 +450,7 @@ namespace edit
 
               for (; i < File[Line].Length; i++)
               {
-                if (File[Line][i] != ' ' || File[Line][i] != '\t')
+                if (File[Line][i] != ' ' && File[Line][i] != '\t')
                 {
                   if (i == Char)
                     break;
@@ -501,15 +525,181 @@ namespace edit
 
             break;
           }
+
+        case ConsoleKey.C:
+          {
+            if (Key.Modifiers == ConsoleModifiers.Control)
+            {
+              StringBuilder sb = new StringBuilder();
+
+              if (SelectionStartLine < SelectionEndLine)
+              {
+                sb.AppendLine(File[SelectionStartLine].Substring(SelectionStartChar));
+
+                for (int i = SelectionStartLine + 1; i < SelectionEndLine; i++)
+                  sb.AppendLine(File[i]);
+
+                sb.AppendLine(File[SelectionEndLine].Substring(0, SelectionEndChar));
+              }
+              else
+              {
+                sb.AppendLine(File[SelectionStartLine].Substring(SelectionStartChar, SelectionEndChar - SelectionStartChar));
+              }
+
+              System.Windows.Forms.Clipboard.SetText(sb.ToString());
+              CopyBuffer.Add(sb.ToString());
+            }
+
+            break;
+          }
+
+        case ConsoleKey.X:
+          {
+            if (Key.Modifiers == ConsoleModifiers.Control)
+            {
+              StringBuilder sb = new StringBuilder();
+
+              if (SelectionStartLine < SelectionEndLine)
+              {
+                sb.AppendLine(File[SelectionStartLine].Substring(SelectionStartChar));
+
+                for (int i = SelectionStartLine + 1; i < SelectionEndLine; i++)
+                  sb.AppendLine(File[i]);
+
+                sb.AppendLine(File[SelectionEndLine].Substring(0, SelectionEndChar));
+              }
+              else
+              {
+                sb.AppendLine(File[SelectionStartLine].Substring(SelectionStartChar, SelectionEndChar - SelectionStartChar));
+              }
+
+              System.Windows.Forms.Clipboard.SetText(sb.ToString());
+              CopyBuffer.Add(sb.ToString());
+
+              RemoveSelection();
+              Selecting = false;
+              forceRedraw = true;
+            }
+
+            break;
+          }
+
+        case ConsoleKey.A:
+          {
+            if (Key.Modifiers == ConsoleModifiers.Control)
+            {
+              Selecting = true;
+              SelectionStartLine = 0;
+              SelectionStartChar = 0;
+              SelectionEndLine = File.Count - 1;
+              SelectionEndChar = File[File.Count - 1].Length;
+              forceRedraw = true;
+            }
+
+            break;
+          }
+
+        case ConsoleKey.V:
+          {
+            if (Key.Modifiers == ConsoleModifiers.Control)
+            {
+              if (Selecting)
+              {
+                RemoveSelection();
+                Selecting = false;
+              }
+
+              forceRedraw = true;
+              string clipboard = null;
+
+              if (System.Windows.Forms.Clipboard.ContainsText())
+                clipboard = System.Windows.Forms.Clipboard.GetText();
+              
+              if (clipboard == null)
+              {
+                CurrentMode = EMode.MessageBox;
+                ErrorMessageString = $"Failed to paste. To text currently copied.";
+                break;
+              }
+
+              for (int i = 0; i < clipboard.Length; i++)
+              {
+                if (clipboard[i] == '\r')
+                {
+                  continue;
+                }
+                else if (clipboard[i] == '\n')
+                {
+                  if (Char == 0)
+                  {
+                    File.Insert(Line + 1, "");
+                    Line++;
+                  }
+                  else
+                  {
+                    File.Insert(Line, File[Line].Substring(0, Char));
+                    Line++;
+                    File[Line] = File[Line].Substring(Char);
+                    Char = 0;
+                  }
+                }
+                else
+                {
+                  File[Line] = File[Line].Insert(Char, clipboard[i].ToString());
+                  Char++;
+                }
+              }
+            }
+
+            break;
+          }
+
+        case ConsoleKey.F5:
+          {
+            forceRedraw = true;
+
+            if (string.IsNullOrWhiteSpace(FileName))
+            {
+              CurrentMode = EMode.MessageBox;
+              ErrorMessageString = $"Currently not attached to a file to reload from.";
+              break;
+            }
+
+            try
+            {
+              File = System.IO.File.ReadAllLines(FileName).ToList();
+            }
+            catch (Exception e)
+            {
+              CurrentMode = EMode.MessageBox;
+              ErrorMessageString = $"Failed to reload file '{FileName}'. ({e.Message})";
+              break;
+            }
+
+            if (File.Count == 0)
+              File.Add("");
+
+            if (Line >= File.Count)
+            {
+              Line = 0;
+              Char = 0;
+            }
+            else if (Char > File[Line].Length)
+            {
+              Char = 0;
+            }
+
+            break;
+          }
       }
 
-      if (Selecting)
+      if (Selecting && (Key.Modifiers & ConsoleModifiers.Shift) != 0)
       {
         if (Line == SelectionStartLine && Char < SelectionStartChar)
         {
           SelectionStartChar = Char;
         }
-        else if (Line == SelectionEndLine && Char > SelectionStartChar)
+        else if (Line == SelectionEndLine && Char > SelectionEndChar)
         {
           SelectionEndChar = Char;
         }
@@ -530,8 +720,12 @@ namespace edit
     {
       if (SelectionStartLine < SelectionEndLine)
       {
-        File[SelectionStartLine] = File[SelectionStartLine].Remove(SelectionStartChar);
-        File[SelectionEndLine] = File[SelectionEndLine].Substring(SelectionEndLine);
+        if (File[SelectionStartLine].Length > 0)
+          File[SelectionStartLine] = File[SelectionStartLine].Remove(SelectionStartChar);
+
+        if (File[SelectionEndLine].Length > 0)
+          File[SelectionEndLine] = File[SelectionEndLine].Substring(SelectionEndChar);
+
         File.RemoveRange(SelectionStartLine + 1, SelectionEndLine - SelectionStartLine - 1);
       }
       else
@@ -602,7 +796,7 @@ namespace edit
         }
         else
         {
-          Console.ForegroundColor = ConsoleColor.Blue;
+          Console.ForegroundColor = ConsoleColor.Cyan;
           Console.BackgroundColor = ConsoleColor.DarkBlue;
         }
 
@@ -653,7 +847,7 @@ namespace edit
               }
               else
               {
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.BackgroundColor = ConsoleColor.DarkBlue;
               }
             }
@@ -789,7 +983,7 @@ namespace edit
           }
           else
           {
-            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.BackgroundColor = ConsoleColor.DarkBlue;
           }
 
