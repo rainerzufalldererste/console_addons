@@ -27,6 +27,8 @@ namespace edit
     static int OriginX = 0, OriginY = 0;
     static string FileName;
     static string ErrorMessageString = "";
+    static int SelectionStartLine = -1, SelectionEndLine = -1, SelectionStartChar = -1, SelectionEndChar = -1;
+    static bool Selecting = false;
 
     static void Main(string[] args)
     {
@@ -176,21 +178,49 @@ namespace edit
 
       if ((Key.Modifiers == ConsoleModifiers.Shift || Key.Modifiers == 0) && !char.IsControl(Key.KeyChar) && Key.KeyChar != '\0')
       {
+        if (Selecting)
+        {
+          RemoveSelection();
+          Selecting = false;
+        }
+
         File[Line] = File[Line].Insert(Char, Key.KeyChar.ToString());
         Char++;
+      }
+      else
+      {
+        if (Key.Modifiers == ConsoleModifiers.Shift)
+        {
+          if (!Selecting)
+          {
+            SelectionStartLine = Line;
+            SelectionEndLine = Line;
+            SelectionStartChar = Char;
+            SelectionEndChar = Char;
+            Selecting = true;
+          }
+        }
       }
 
       switch (Key.Key)
       {
+        case ConsoleKey.Escape:
+          if (Selecting)
+          {
+            Selecting = false;
+            forceRedraw = true;
+          }
+          break;
+
         case ConsoleKey.UpArrow:
-          if (Char > Console.BufferWidth)
+          if (Char > Console.BufferWidth && !((Key.Modifiers & (ConsoleModifiers.Control)) != 0))
             Char -= Console.BufferWidth;
           else
             Line = Math.Max(Line - 1, 0);
           break;
 
         case ConsoleKey.DownArrow:
-          if (Char + Console.BufferWidth <= File[Line].Length)
+          if (Char + Console.BufferWidth <= File[Line].Length && !((Key.Modifiers & (ConsoleModifiers.Control)) != 0))
             Char += Console.BufferWidth;
           else
             Line = Math.Min(Line + 1, File.Count - 1);
@@ -388,8 +418,40 @@ namespace edit
 
         case ConsoleKey.Tab:
           {
-            File[Line] += "  ";
-            Char += 2;
+            bool jumped = false;
+
+            if (File[Line].Length > Char)
+            {
+              int i = Char;
+
+              for (; i < File[Line].Length; i++)
+              {
+                if (File[Line][i] != ' ' || File[Line][i] != '\t')
+                {
+                  if (i == Char)
+                    break;
+                  else
+                  {
+                    Char = i;
+                    jumped = true;
+                    break;
+                  }
+                }
+              }
+
+              if (i == File[Line].Length)
+              {
+                Char = i;
+                jumped = true;
+              }
+            }
+
+            if (!jumped)
+            {
+              File[Line] = File[Line].Insert(Char, "  ");
+              Char += 2;
+            }
+
             break;
           }
 
@@ -440,6 +502,45 @@ namespace edit
             break;
           }
       }
+
+      if (Selecting)
+      {
+        if (Line == SelectionStartLine && Char < SelectionStartChar)
+        {
+          SelectionStartChar = Char;
+        }
+        else if (Line == SelectionEndLine && Char > SelectionStartChar)
+        {
+          SelectionEndChar = Char;
+        }
+        else if (Line < SelectionStartLine)
+        {
+          SelectionStartLine = Line;
+          SelectionStartChar = Char;
+        }
+        else if (Line > SelectionEndLine)
+        {
+          SelectionEndLine = Line;
+          SelectionEndChar = Char;
+        }
+      }
+    }
+
+    private static void RemoveSelection()
+    {
+      if (SelectionStartLine < SelectionEndLine)
+      {
+        File[SelectionStartLine] = File[SelectionStartLine].Remove(SelectionStartChar);
+        File[SelectionEndLine] = File[SelectionEndLine].Substring(SelectionEndLine);
+        File.RemoveRange(SelectionStartLine + 1, SelectionEndLine - SelectionStartLine - 1);
+      }
+      else
+      {
+        File[SelectionStartLine] = File[SelectionStartLine].Remove(SelectionStartChar, SelectionEndChar - SelectionStartChar);
+      }
+
+      Line = SelectionStartLine;
+      Char = SelectionStartChar;
     }
 
     static void EditModeRender()
@@ -454,6 +555,7 @@ namespace edit
       int characterIndex = 0;
       int drawnChar = 0;
       int textLine = Line;
+      bool inSelection = false;
 
       // Find correct line to start rendering.
       {
@@ -491,6 +593,22 @@ namespace edit
         }
       }
 
+      if (Selecting && (textLine > SelectionStartLine || (textLine == SelectionStartLine && characterIndex >= SelectionStartChar)))
+      {
+        if (textLine == Line)
+        {
+          Console.ForegroundColor = ConsoleColor.Cyan;
+          Console.BackgroundColor = ConsoleColor.DarkCyan;
+        }
+        else
+        {
+          Console.ForegroundColor = ConsoleColor.Blue;
+          Console.BackgroundColor = ConsoleColor.DarkBlue;
+        }
+
+        inSelection = true;
+      }
+
       while (renderLine < BufferHeight - 2)
       {
         if (textLine >= File.Count)
@@ -504,12 +622,59 @@ namespace edit
             sb.Clear();
           }
 
-          Console.BackgroundColor = ConsoleColor.DarkGray;
-          Console.ForegroundColor = ConsoleColor.White;
+          if (!inSelection)
+          {
+            Console.BackgroundColor = ConsoleColor.DarkGray;
+            Console.ForegroundColor = ConsoleColor.White;
+          }
+          else
+          {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.BackgroundColor = ConsoleColor.DarkCyan;
+          }
         }
 
         for (; characterIndex < File[textLine].Length; characterIndex++)
         {
+          if (Selecting)
+          {
+            bool currentCharInSelection = IsInSelection(textLine, characterIndex);
+
+            if (!inSelection && currentCharInSelection)
+            {
+              Console.Write(sb.ToString());
+              sb.Clear();
+              inSelection = true;
+
+              if (textLine == Line)
+              {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.BackgroundColor = ConsoleColor.DarkCyan;
+              }
+              else
+              {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+              }
+            }
+            else if (inSelection && !currentCharInSelection)
+            {
+              Console.Write(sb.ToString());
+              sb.Clear();
+              inSelection = false;
+
+              if (textLine == Line)
+              {
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = ConsoleColor.White;
+              }
+              else
+              {
+                Console.ResetColor();
+              }
+            }
+          }
+
           char c = File[textLine][characterIndex];
 
           if (textLine == Line && characterIndex == Char)
@@ -528,9 +693,17 @@ namespace edit
           {
             Console.Write(sb.ToString());
             sb.Clear();
-            Console.ResetColor();
-            Console.BackgroundColor = ConsoleColor.DarkGray;
-            Console.ForegroundColor = ConsoleColor.White;
+
+            if (!inSelection)
+            {
+              Console.BackgroundColor = ConsoleColor.DarkGray;
+              Console.ForegroundColor = ConsoleColor.White;
+            }
+            else
+            {
+              Console.ForegroundColor = ConsoleColor.Cyan;
+              Console.BackgroundColor = ConsoleColor.DarkCyan;
+            }
           }
 
           if (c == '\t')
@@ -566,7 +739,17 @@ namespace edit
           {
             if (Char == characterIndex)
             {
-              Console.BackgroundColor = ConsoleColor.DarkGray;
+              if (!inSelection)
+              {
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = ConsoleColor.White;
+              }
+              else
+              {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.BackgroundColor = ConsoleColor.DarkCyan;
+              }
+
               Console.Write(sb.ToString());
               sb.Clear();
 
@@ -582,13 +765,33 @@ namespace edit
                 renderLine++;
             }
 
-            Console.BackgroundColor = ConsoleColor.DarkGray;
+            if (!inSelection)
+            {
+              Console.BackgroundColor = ConsoleColor.DarkGray;
+              Console.ForegroundColor = ConsoleColor.White;
+            }
+            else
+            {
+              Console.ForegroundColor = ConsoleColor.Cyan;
+              Console.BackgroundColor = ConsoleColor.DarkCyan;
+            }
+
             Console.Write(sb.ToString());
             sb.Clear();
           }
 
           if (drawnChar != Console.WindowWidth)
             sb.Append(new string(' ', Console.WindowWidth - (drawnChar % Console.WindowWidth)));
+          
+          if (!inSelection)
+          {
+            Console.ResetColor();
+          }
+          else
+          {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
+          }
 
           renderLine++;
           textLine++;
@@ -597,15 +800,23 @@ namespace edit
         }
       }
 
+      Console.Write(sb.ToString());
+      sb.Clear();
+      Console.ResetColor();
+
       while (renderLine < BufferHeight - 1)
       {
         sb.Append(new string(' ', Console.WindowWidth));
         renderLine++;
       }
 
-      Console.ResetColor();
       Console.Write(sb.ToString());
       sb.Clear();
+    }
+
+    private static bool IsInSelection(int textLine, int characterIndex)
+    {
+      return (textLine > SelectionStartLine && textLine < SelectionEndLine) || (textLine == SelectionStartLine && SelectionStartLine != SelectionEndLine && characterIndex >= SelectionStartChar) || (textLine == SelectionEndLine && SelectionStartLine != SelectionEndLine && characterIndex <= SelectionEndChar) || (SelectionStartLine == SelectionEndLine && textLine == SelectionStartLine && characterIndex <= SelectionEndChar && characterIndex >= SelectionStartChar);
     }
   }
 }
