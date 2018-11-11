@@ -53,7 +53,7 @@ namespace edit
         {
           int argIndex = 1;
 
-          while (argIndex + 1 < args.Length)
+          while (argIndex < args.Length)
           {
             int argsLeft = args.Length - argIndex;
 
@@ -81,6 +81,17 @@ namespace edit
                 }
                 break;
 
+              case "-q":
+              case "--quick":
+                {
+                  BufferHeight = 12;
+                  CustomHeight = true;
+                  OriginX = Console.CursorLeft;
+                  OriginY = Console.CursorTop;
+                  argIndex++;
+                  break;
+                }
+
               default:
                 Console.WriteLine("Invalid Parameter.");
                 Environment.Exit(-1);
@@ -104,20 +115,29 @@ namespace edit
 
       do
       {
-        switch (CurrentMode)
+        try
         {
-          case EMode.EditText:
-          default:
-            UpdateEditMode(out forceRedraw);
-            break;
+          switch (CurrentMode)
+          {
+            case EMode.EditText:
+            default:
+              UpdateEditMode(out forceRedraw);
+              break;
 
-          case EMode.MessageBox:
-            if (Key.Key == ConsoleKey.Enter)
-            {
-              CurrentMode = EMode.EditText;
-              forceRedraw = true;
-            }
-            break;
+            case EMode.MessageBox:
+              if (Key.Key == ConsoleKey.Enter)
+              {
+                CurrentMode = EMode.EditText;
+                forceRedraw = true;
+              }
+              break;
+          }
+        }
+        catch (Exception e)
+        {
+          CurrentMode = EMode.MessageBox;
+          ErrorMessageString = e.ToString();
+          forceRedraw = true;
         }
 
         switch (CurrentMode)
@@ -481,9 +501,9 @@ namespace edit
 
         case ConsoleKey.S:
           {
-            if (Key.Modifiers == ConsoleModifiers.Control)
+            if ((Key.Modifiers & ConsoleModifiers.Control) != 0)
             {
-              if (string.IsNullOrWhiteSpace(FileName) || Key.Modifiers == ConsoleModifiers.Alt)
+              if (string.IsNullOrWhiteSpace(FileName) || (Key.Modifiers & ConsoleModifiers.Shift) != 0)
               {
                 Clear();
                 SetCursorPosition(2, 1);
@@ -528,7 +548,7 @@ namespace edit
 
         case ConsoleKey.C:
           {
-            if (Key.Modifiers == ConsoleModifiers.Control)
+            if (Key.Modifiers == ConsoleModifiers.Control && Selecting)
             {
               StringBuilder sb = new StringBuilder();
 
@@ -555,7 +575,7 @@ namespace edit
 
         case ConsoleKey.X:
           {
-            if (Key.Modifiers == ConsoleModifiers.Control)
+            if (Key.Modifiers == ConsoleModifiers.Control && Selecting)
             {
               StringBuilder sb = new StringBuilder();
 
@@ -695,6 +715,9 @@ namespace edit
 
       if (Selecting && (Key.Modifiers & ConsoleModifiers.Shift) != 0)
       {
+        if (Char > File[Line].Length)
+          Char = Math.Min(Char - (Char / Console.BufferWidth) * Console.BufferWidth, File[Line].Length);
+
         if (Line == SelectionStartLine && Char < SelectionStartChar)
         {
           SelectionStartChar = Char;
@@ -720,11 +743,11 @@ namespace edit
     {
       if (SelectionStartLine < SelectionEndLine)
       {
-        if (File[SelectionStartLine].Length > 0)
-          File[SelectionStartLine] = File[SelectionStartLine].Remove(SelectionStartChar);
+        if (File[SelectionStartLine].Length > SelectionStartChar)
+          File[SelectionStartLine] = File[SelectionStartLine].Remove(Math.Min(SelectionStartChar, File[SelectionStartLine].Length - 1));
 
-        if (File[SelectionEndLine].Length > 0)
-          File[SelectionEndLine] = File[SelectionEndLine].Substring(SelectionEndChar);
+        if (File[SelectionEndLine].Length > SelectionEndChar)
+          File[SelectionEndLine] = File[SelectionEndLine].Substring(Math.Max(SelectionEndChar, 1));
 
         File.RemoveRange(SelectionStartLine + 1, SelectionEndLine - SelectionStartLine - 1);
       }
