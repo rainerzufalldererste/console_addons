@@ -24,6 +24,7 @@ namespace edit
     static EMode CurrentMode = EMode.EditText;
     static int BufferHeight = Console.WindowHeight;
     static bool CustomHeight = false;
+    static int OriginX = 0, OriginY = 0;
     static string FileName;
     static string ErrorMessageString = "";
 
@@ -65,6 +66,8 @@ namespace edit
                   }
 
                   CustomHeight = true;
+                  OriginX = Console.CursorLeft;
+                  OriginY = Console.CursorTop;
                   argIndex += 2;
                 }
                 else
@@ -117,12 +120,12 @@ namespace edit
         {
           case EMode.MessageBox:
             Clear();
-              Console.SetCursorPosition(2, 1);
+              SetCursorPosition(2, 1);
               Console.WriteLine("Message:");
-              Console.SetCursorPosition(4, 3);
+              SetCursorPosition(4, 3);
               Console.WriteLine(ErrorMessageString);
               Console.WriteLine();
-              Console.SetCursorPosition(2, BufferHeight - 2);
+              SetCursorPosition(2, BufferHeight - 2);
               Console.WriteLine("Press [Enter] to continue.");
 
             break;
@@ -139,19 +142,26 @@ namespace edit
             break;
         }
 
-        Console.SetCursorPosition(ActivePositionX, ActivePositionY);
+        SetCursorPosition(ActivePositionX, ActivePositionY);
       }
       while (IsRunning && !((Key = Console.ReadKey()).Key == ConsoleKey.C && Key.Modifiers == ConsoleModifiers.Control));
 
       if (!CustomHeight)
         Clear();
+      else
+        SetCursorPosition(0, BufferHeight - 2);
+    }
+
+    private static void SetCursorPosition(int x, int y)
+    {
+      Console.SetCursorPosition(OriginX + x, OriginY + y);
     }
 
     private static void Clear()
     {
       if (CustomHeight)
       {
-        Console.SetCursorPosition(0, 0);
+        SetCursorPosition(0, 0);
         Console.Write(new string(' ', BufferHeight * Console.WindowWidth));
       }
       else
@@ -390,15 +400,15 @@ namespace edit
               if (string.IsNullOrWhiteSpace(FileName) || Key.Modifiers == ConsoleModifiers.Alt)
               {
                 Clear();
-                Console.SetCursorPosition(2, 1);
+                SetCursorPosition(2, 1);
                 Console.WriteLine("Message:");
-                Console.SetCursorPosition(4, 3);
+                SetCursorPosition(4, 3);
                 Console.WriteLine("Enter File Name:");
                 Console.WriteLine();
                 Console.WriteLine();
-                Console.SetCursorPosition(2, BufferHeight - 2);
+                SetCursorPosition(2, BufferHeight - 2);
                 Console.WriteLine("Press [Enter] to continue.");
-                Console.SetCursorPosition(4, 5);
+                SetCursorPosition(4, 5);
 
                 FileName = Console.ReadLine();
               }
@@ -434,15 +444,52 @@ namespace edit
 
     static void EditModeRender()
     {
-      Console.SetCursorPosition(0, 0);
+      SetCursorPosition(0, 0);
       StringBuilder sb = new StringBuilder();
+
+      if (Char > File[Line].Length)
+        Char = Math.Min(Char - (Char / Console.BufferWidth) * Console.BufferWidth, File[Line].Length);
 
       int renderLine = 0;
       int characterIndex = 0;
       int drawnChar = 0;
-      int textLine = Math.Max(Line - BufferHeight / 2, 0);
+      int textLine = Line;
 
-      Char = Math.Min(Char, File[Line].Length);
+      // Find correct line to start rendering.
+      {
+        int remainingLines = (BufferHeight - 1) / 2;
+
+        for (int i = Line; i >= 0; i--)
+        {
+          if (remainingLines <= 0)
+            break;
+
+          remainingLines--;
+          textLine = i;
+          characterIndex = 0;
+
+          if (File[i].Length > Console.BufferWidth)
+          {
+            if (i == Line)
+              characterIndex = Char - (Char % Console.BufferWidth);
+            else
+              characterIndex = File[i].Length - (File[i].Length % Console.BufferWidth);
+            
+            while (characterIndex > 0)
+            {
+              if (remainingLines > 0)
+              {
+                remainingLines--;
+                characterIndex -= Console.BufferWidth;
+              }
+              else
+              {
+                break;
+              }
+            }
+          }
+        }
+      }
 
       while (renderLine < BufferHeight - 2)
       {
