@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,8 +15,10 @@ namespace findif
     {
       SearchOption searchOption = SearchOption.AllDirectories;
       string fileSearchPattern = "";
+      string excludeText = null;
       string textSearch = "";
       bool ignoreCase = true;
+      bool allowNullChars = false;
       ListingMethod listingMethod = (ListingMethod)5;
 
       if (args.Length == 0)
@@ -35,6 +37,16 @@ namespace findif
         {
           fileSearchPattern = args[index + 1];
           index += 2;
+        }
+        else if (args[index] == "-x" && index < args.Length - 2 && string.IsNullOrEmpty(excludeText))
+        {
+          excludeText = args[index + 1];
+          index += 2;
+        }
+        else if (args[index] == "-0")
+        {
+          allowNullChars = true;
+          index++;
         }
         else if (args[index] == "-c" || args[index] == "--case-sensitive")
         {
@@ -67,10 +79,45 @@ namespace findif
 
       foreach (string filename in allFiles)
       {
+        if (excludeText != null && filename.Contains(excludeText))
+          continue;
+
         try
         {
           string[] file = File.ReadAllLines(filename);
-          
+
+          if (!allowNullChars)
+          {
+            bool found = false;
+
+            for (int line = 0; line < file.Length; line++)
+            {
+              if (file[line].Contains('\0'))
+              {
+                if (line == file.Length - 1) // Last char of last line is allowed to be '\0'.
+                {
+                  for (int i = 0; i < file[line].Length - 1; i++)
+                  {
+                    if (file[line][i] == '\0')
+                    {
+                      found = true;
+                      break;
+                    }
+                  }
+
+                  if (found)
+                    break;
+                }
+
+                found = true;
+                break;
+              }
+            }
+
+            if (found)
+              continue;
+          }
+
           for (int line = 0; line < file.Length; line++)
           {
             if ((ignoreCase && file[line].ToLower().Contains(textSearch)) || (!ignoreCase && file[line].Contains(textSearch)))
@@ -129,7 +176,7 @@ namespace findif
       return;
 
       INVALID_PARAMETER:
-      Console.WriteLine("Invalid Parameter.\n\nfindif \n\n\t[-f <file-search-pattern> [-t(op directory only)] ] \n\t[-c (case sensitive) | --case-sensitive] \n\t[-n (display filenames only) / -l=<n> (display n lines before and after match.)] \n\t<string-to-find>");
+      Console.WriteLine("Invalid Parameter.\n\nfindif \n\n\t[-f <file-search-pattern>] [-x <excluded-path-string>] [-t(op directory only)] [-0 (allow null chars in files)]\n\t[-c (case sensitive) | --case-sensitive] \n\t[-n (display filenames only) / -l=<n> (display n lines before and after match.)] \n\t<string-to-find>");
 #if DEBUG
       Console.ReadKey();
 #endif
